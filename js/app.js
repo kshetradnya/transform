@@ -25,11 +25,11 @@ class AppUI {
   toggleTheme() {
       const body = document.body;
       const current = body.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
+      const next = current === 'dracula' ? 'synthwave' : 'dracula';
       body.setAttribute('data-theme', next);
       
       const icon = document.querySelector('#btn-theme i');
-      icon.className = next === 'dark' ? 'ri-sun-line' : 'ri-moon-line';
+      icon.className = next === 'dracula' ? 'ri-contrast-drop-line' : 'ri-palette-line';
   }
 
   // --- Auth UI ---
