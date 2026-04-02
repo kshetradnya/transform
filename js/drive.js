@@ -1,7 +1,7 @@
 export class DriveManager {
     constructor() {
         // Placeholder Client ID
-        this.CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com';
+        this.CLIENT_ID = '653457771095-kv42f6iln2bijs9mj2mb0rqu0q0sc75s.apps.googleusercontent.com';
         this.SCOPES = 'https://www.googleapis.com/auth/drive.file profile email';
         this.tokenClient = null;
         this.accessToken = null;
