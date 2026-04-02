@@ -4,66 +4,107 @@ class AIAssistant {
   constructor(engineRef, uiRef) {
     this.engine = engineRef;
     this.ui = uiRef; 
-    
-    // AI Keyword mapping to settings
-    this.intentMap = {
-      'moody': { brightness: 80, contrast: 130, saturation: 90, vignette: 40, temperature: 5000 },
-      'bright': { brightness: 120, contrast: 110, exposure: 10, highlights: 20 },
-      'vibrant': { saturation: 150, vibrance: 60, contrast: 115 },
-      'vintage': { sepia: 40, saturation: 80, grain: 30, contrast: 90 },
-      'cool': { temperature: 4000, tint: -10 },
-      'warm': { temperature: 7000, tint: 10 },
-      'cyberpunk': { contrast: 140, saturation: 140, hueRotate: 300, vignette: 20 },
-      'cinematic': { contrast: 125, saturation: 105, vignette: 30 }
+
+    // NLP Dictionaries for intent matching
+    this.dictionary = {
+      increase_brightness: ['bright', 'light', 'sun', 'shine', 'white', 'pop', 'expose', 'brighter'],
+      decrease_brightness: ['dark', 'shadow', 'black', 'dim', 'moody', 'darker'],
+      increase_temperature: ['warm', 'orange', 'yellow', 'hot', 'summer', 'sunny', 'warmer', 'golden'],
+      decrease_temperature: ['cool', 'blue', 'cold', 'winter', 'chill', 'freeze', 'cooler', 'icy'],
+      increase_contrast: ['punch', 'vivid', 'hard', 'cinematic', 'sharp', 'intense', 'contrast'],
+      decrease_contrast: ['flat', 'fade', 'washed', 'dull'],
+      increase_saturation: ['color', 'colorful', 'rich', 'vibrant', 'saturate', 'saturation'],
+      decrease_saturation: ['pale', 'gray', 'grey', 'monochrome', 'desaturate'],
+      increase_blur: ['soft', 'blur', 'dream', 'dreamy', 'smooth', 'out of focus'],
+      vintage: ['vintage', 'old', 'retro', 'film', 'analog', 'grain', 'sepia', 'classic']
+    };
+
+    // Words that scale the degree of the effect
+    this.multipliers = {
+      'very': 2, 'really': 2, 'way': 3, 'extremely': 3, 'much': 2, 'lots': 2, 'too': 2,
+      'bit': 0.5, 'little': 0.5, 'slightly': 0.5, 'touch': 0.5, 'somewhat': 0.5
     };
   }
 
   processText(input) {
     const text = input.toLowerCase();
+    const words = text.replace(/[^\w\s]/gi, '').split(/\s+/);
     
-    // Determine action
-    let handled = false;
     let appliedSettings = {};
-    let responseText = "I applied those settings for you. Let me know if you want it further adjusted!";
-    
-    // Check keyword maps
-    for (const [keyword, settings] of Object.entries(this.intentMap)) {
-      if (text.includes(keyword)) {
-        appliedSettings = { ...appliedSettings, ...settings };
-        handled = true;
-      }
-    }
-    
-    // Handle specific slider requests like "increase contrast" or "more saturation"
-    if (text.includes('contrast')) {
-      if (text.includes('more') || text.includes('increase')) {
-         appliedSettings.contrast = Math.min((this.engine.state.contrast || 100) + 30, 200);
-         handled = true;
-      } else if (text.includes('less') || text.includes('decrease')) {
-         appliedSettings.contrast = Math.max((this.engine.state.contrast || 100) - 30, 0);
-         handled = true;
-      }
-    }
-    
-    if (text.includes('brightness') || text.includes('exposure')) {
-       if (text.includes('more') || text.includes('increase') || text.includes('brighter')) {
-          appliedSettings.brightness = Math.min((this.engine.state.brightness || 100) + 30, 200);
-          handled = true;
-       } else if (text.includes('less') || text.includes('decrease') || text.includes('darker')) {
-          appliedSettings.brightness = Math.max((this.engine.state.brightness || 100) - 30, 0);
-          handled = true;
-       }
+    let handled = false;
+    let currentMultiplier = 1;
+
+    // Scan through words sequentially to detect context
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        
+        // Update multiplier if we find an intensity word
+        if (this.multipliers[word]) {
+            currentMultiplier = this.multipliers[word];
+            continue;
+        }
+
+        // Check against dictionaries
+        if (this.dictionary.increase_brightness.includes(word)) {
+            appliedSettings.brightness = (this.engine.state.brightness || 100) + (30 * currentMultiplier);
+            appliedSettings.exposure = (this.engine.state.exposure || 0) + (20 * currentMultiplier);
+            handled = true;
+        }
+        if (this.dictionary.decrease_brightness.includes(word)) {
+            appliedSettings.brightness = Math.max(0, (this.engine.state.brightness || 100) - (30 * currentMultiplier));
+            handled = true;
+        }
+        if (this.dictionary.increase_temperature.includes(word)) {
+            appliedSettings.temperature = (this.engine.state.temperature || 5500) + (1500 * currentMultiplier);
+            handled = true;
+        }
+        if (this.dictionary.decrease_temperature.includes(word)) {
+            appliedSettings.temperature = Math.max(1000, (this.engine.state.temperature || 5500) - (1500 * currentMultiplier));
+            handled = true;
+        }
+        if (this.dictionary.increase_contrast.includes(word)) {
+            appliedSettings.contrast = (this.engine.state.contrast || 100) + (40 * currentMultiplier);
+            handled = true;
+        }
+        if (this.dictionary.decrease_contrast.includes(word)) {
+            appliedSettings.contrast = Math.max(0, (this.engine.state.contrast || 100) - (40 * currentMultiplier));
+            handled = true;
+        }
+        if (this.dictionary.increase_saturation.includes(word)) {
+            appliedSettings.saturation = (this.engine.state.saturation || 100) + (50 * currentMultiplier);
+            appliedSettings.vibrance = (this.engine.state.vibrance || 0) + (20 * currentMultiplier);
+            handled = true;
+        }
+        if (this.dictionary.decrease_saturation.includes(word)) {
+            appliedSettings.saturation = Math.max(0, (this.engine.state.saturation || 100) - (50 * currentMultiplier));
+            handled = true;
+        }
+        if (this.dictionary.increase_blur.includes(word)) {
+            appliedSettings.blur = (this.engine.state.blur || 0) + (5 * currentMultiplier);
+            handled = true;
+        }
+        if (this.dictionary.vintage.includes(word)) {
+            // Apply a vintage style package directly
+            appliedSettings.sepia = (this.engine.state.sepia || 0) + (30 * currentMultiplier);
+            appliedSettings.grain = (this.engine.state.grain || 0) + (40 * currentMultiplier);
+            appliedSettings.contrast = (this.engine.state.contrast || 100) - (15 * currentMultiplier);
+            handled = true;
+        }
+
+        // Reset multiplier after matching a semantic token
+        if (handled) currentMultiplier = 1;
     }
 
+    let responseText = "Done! I've adjusted the settings for you.";
+
     if (!handled) {
-      // Pick a random template if totally confused but wants a look
       if (text.includes('make it look') || text.includes('style')) {
          const randomTemplate = templatesList[Math.floor(Math.random() * templatesList.length)];
          appliedSettings = { ...randomTemplate.settings };
-         responseText = `I thought the "${randomTemplate.name}" style might fit well! Applied.`;
+         responseText = `I interpreted that as a "${randomTemplate.name}" aesthetic. Applied!`;
          handled = true;
       } else {
-         responseText = "I'm not exactly sure what you mean. Try terms like 'Make it vintage', 'Increase brightness', or 'Moody cinematic'.";
+         responseText = "Hmm, I didn't quite catch the specific adjustments you wanted. Try describing the lighting, colors, or mood (e.g. 'make it extremely warm and slightly moody').";
       }
     }
     

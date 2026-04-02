@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transform - Premium Photo Editor</title>
-  <meta name="description" content="AI-powered cinematic photo editing platform">
+  <title>Transform - Minimal Photo Editor</title>
+  <meta name="description" content="AI-powered minimal photo editing platform">
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,35 +13,51 @@
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   
   <link rel="stylesheet" href="./styles/main.css">
+  
+  <!-- Google Identity API -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body class="dark-theme">
-  <!-- Fluid Cursor -->
-  <div id="cursor-glow"></div>
-  <div id="cursor-dot"></div>
+<body data-theme="dark">
 
   <!-- Main Application Wrapper -->
   <div class="app-wrapper">
     
     <!-- Top Bar -->
-    <header class="top-bar glass-panel">
+    <header class="top-bar">
       <div class="logo">
         <div class="logo-icon"></div>
         <h1>Transform</h1>
       </div>
       <div class="top-actions">
-        <button id="btn-undo" class="icon-btn magnetic"><i class="ri-arrow-go-back-line"></i></button>
-        <button id="btn-redo" class="icon-btn magnetic"><i class="ri-arrow-go-forward-line"></i></button>
+        <!-- Auth state container -->
+        <div id="auth-container" style="display: flex; align-items: center; gap: 10px;">
+           <button id="btn-login" class="secondary-btn"><i class="ri-google-fill"></i> Connect Drive</button>
+           <div id="user-profile" style="display: none; align-items: center; gap: 8px;">
+             <img id="user-avatar" src="" alt="avatar" style="width: 28px; height: 28px; border-radius: 50%;">
+             <span id="user-name" style="font-size: 13px; font-weight: 500;"></span>
+             <button id="btn-logout" class="icon-btn tooltip" data-tip="Sign Out"><i class="ri-logout-box-r-line"></i></button>
+           </div>
+        </div>
+        
         <div class="divider"></div>
-        <button id="btn-compare" class="text-btn magnetic">Original</button>
-        <button id="btn-export" class="primary-btn magnetic">Export <i class="ri-download-line"></i></button>
+        
+        <!-- Theme Toggle -->
+        <button id="btn-theme" class="icon-btn tooltip" data-tip="Toggle Theme"><i class="ri-sun-line"></i></button>
+
+        <div class="divider"></div>
+
+        <button id="btn-undo" class="icon-btn"><i class="ri-arrow-go-back-line"></i></button>
+        <button id="btn-redo" class="icon-btn"><i class="ri-arrow-go-forward-line"></i></button>
+        <button id="btn-compare" class="text-btn">Compare</button>
+        <button id="btn-export" class="primary-btn">Export <i class="ri-download-line"></i></button>
       </div>
     </header>
 
     <!-- Main Workspace -->
     <div class="workspace">
       
-      <!-- Left Sidebar: Tools (30 Features) -->
-      <aside class="sidebar-left glass-panel styled-scroll">
+      <!-- Left Sidebar: Tools -->
+      <aside class="sidebar-left styled-scroll">
         <div class="sidebar-header">
           <h2>Adjustments</h2>
           <div class="tabs">
@@ -53,30 +69,28 @@
         </div>
         
         <div class="sidebar-content" id="tools-container">
-          <!-- Tools will be injected here by JS -->
+          <!-- Tools injected -->
         </div>
       </aside>
 
       <!-- Center: Canvas & Image -->
       <main class="canvas-area">
         <div class="upload-overlay active" id="upload-overlay">
-          <div class="upload-box magnetic">
+          <div class="upload-box">
             <i class="ri-image-add-line"></i>
-            <h3>Drop your photo here</h3>
-            <p>or click to browse</p>
+            <h3>Drop photo to start</h3>
+            <p>Ready to edit</p>
             <input type="file" id="file-upload" accept="image/jpeg, image/png, image/webp" hidden>
-            <button class="secondary-btn" onclick="document.getElementById('file-upload').click()">Browse Files</button>
+            <button class="primary-btn" onclick="document.getElementById('file-upload').click()">Browse Files</button>
           </div>
         </div>
         
         <div class="canvas-container" id="canvas-container" style="display: none;">
           <canvas id="main-canvas"></canvas>
-          <!-- Grid Overlay for cropping etc. -->
-          <div class="grid-overlay" id="grid-overlay"></div>
         </div>
         
-        <!-- Bottom Toolbar (Crop, Rotate, etc.) -->
-        <div class="bottom-toolbar glass-panel" id="bottom-toolbar" style="display: none;">
+        <!-- Bottom Toolbar -->
+        <div class="bottom-toolbar" id="bottom-toolbar" style="display: none;">
           <button class="icon-btn tooltip active" data-tip="Move"><i class="ri-drag-move-fill"></i></button>
           <button class="icon-btn tooltip" data-tip="Crop"><i class="ri-crop-line"></i></button>
           <button class="icon-btn tooltip" data-tip="Rotate L"><i class="ri-anticlockwise-2-line"></i></button>
@@ -87,16 +101,15 @@
           <button class="icon-btn tooltip zoom-out" data-tip="Zoom Out"><i class="ri-zoom-out-line"></i></button>
           <span class="zoom-level">100%</span>
           <button class="icon-btn tooltip zoom-in" data-tip="Zoom In"><i class="ri-zoom-in-line"></i></button>
-          <button class="icon-btn tooltip fit-screen" data-tip="Fit Screen"><i class="ri-fullscreen-line"></i></button>
         </div>
       </main>
 
-      <!-- Right Sidebar: Templates (60 Filters) & AI Mode -->
-      <aside class="sidebar-right glass-panel styled-scroll">
+      <!-- Right Sidebar: Templates & AI Mode -->
+      <aside class="sidebar-right styled-scroll">
         <div class="sidebar-header">
           <div class="mode-toggle">
-            <button class="toggle-btn active" data-mode="templates">Library</button>
-            <button class="toggle-btn ai-glow" data-mode="ai">AI Mode <i class="ri-sparkling-fill"></i></button>
+            <button class="toggle-btn active" data-mode="templates">Presets</button>
+            <button class="toggle-btn" data-mode="ai">AI Chat</button>
           </div>
         </div>
         
@@ -104,43 +117,39 @@
         <div class="sidebar-content" id="templates-panel">
           <div class="search-bar">
             <i class="ri-search-line"></i>
-            <input type="text" id="template-search" placeholder="Search 60+ Cinematic Looks...">
+            <input type="text" id="template-search" placeholder="Search presets...">
           </div>
-          <div class="categories styled-scroll-x" id="template-categories">
-            <!-- Categories injected by JS -->
-          </div>
-          <div class="templates-grid" id="templates-grid">
-            <!-- Preset cards injected by JS -->
-          </div>
+          <div class="categories styled-scroll-x" id="template-categories"></div>
+          <div class="templates-grid" id="templates-grid"></div>
         </div>
 
         <!-- AI Panel -->
         <div class="sidebar-content" id="ai-panel" style="display: none;">
           <div class="ai-header">
             <div class="ai-avatar">
-              <i class="ri-robot-2-fill"></i>
+              <i class="ri-magic-line"></i>
             </div>
             <div class="ai-title">
-              <h3>Transform AI</h3>
-              <p>Your creative assistant</p>
+              <h3>Language Assistant</h3>
+              <p>Type what you want to see</p>
             </div>
           </div>
           
           <div class="chat-container styled-scroll" id="chat-history">
             <div class="chat-message ai">
-              <p>Hi! I can suggest settings, apply specific moods, or fix lighting. Upload a photo and tell me what you're looking for! (e.g. "Make it look like a moody cyberpunk movie")</p>
+              <p>Hello! I analyze your natural language to apply complex photo effects. Try saying "make the picture way warmer and give it some punch!"</p>
             </div>
           </div>
           
           <div class="chat-input-area">
             <div class="chat-suggestions" id="ai-suggestions">
-              <button class="suggestion-chip">"Moody Evening"</button>
-              <button class="suggestion-chip">"Fix Contrast"</button>
-              <button class="suggestion-chip">"Ghibli Sky"</button>
+              <button class="suggestion-chip">"Too dark"</button>
+              <button class="suggestion-chip">"A bit sunnier"</button>
+              <button class="suggestion-chip">"Make it pop"</button>
             </div>
             <div class="input-wrapper">
-              <input type="text" id="ai-input" placeholder="Describe the look...">
-              <button id="ai-send" class="icon-btn ai-send-btn"><i class="ri-send-plane-fill"></i></button>
+              <input type="text" id="ai-input" placeholder="Type here...">
+              <button id="ai-send" class="icon-btn ai-send-btn"><i class="ri-arrow-right-line"></i></button>
             </div>
           </div>
         </div>

@@ -2,65 +2,60 @@ import { engine } from './engine.js';
 import { editorTools } from './tools.js';
 import { templatesList, templateCategories } from './templates.js';
 import { initAI } from './ai.js';
+import { driveManager } from './drive.js';
 
 class AppUI {
   constructor() {
-    this.initCursor();
+    this.originalFileName = 'photo.jpg';
+    
     this.renderTools();
     this.renderTemplates();
     this.bindEvents();
     
     this.ai = initAI(engine, this); 
     this.bindAIEvents();
+
+    // Init Drive Auth
+    setTimeout(() => {
+        driveManager.init((user) => this.updateAuthUI(user));
+    }, 1000); // Give google script time to load
   }
 
-  // --- Fluid Cursor ---
-  initCursor() {
-    const dot = document.getElementById('cursor-dot');
-    const glow = document.getElementById('cursor-glow');
-
-    let x = window.innerWidth / 2;
-    let y = window.innerHeight / 2;
-    
-    // Slow follow for glow
-    let glowX = x;
-    let glowY = y;
-
-    window.addEventListener('mousemove', (e) => {
-      x = e.clientX;
-      y = e.clientY;
-      dot.style.left = `${x}px`;
-      dot.style.top = `${y}px`;
-    });
-
-    const renderCursor = () => {
-      // Lerp for smooth trailing glow
-      glowX += (x - glowX) * 0.15;
-      glowY += (y - glowY) * 0.15;
-      glow.style.left = `${glowX}px`;
-      glow.style.top = `${glowY}px`;
-      requestAnimationFrame(renderCursor);
-    };
-    renderCursor();
-    
-    // Magnetic Hover Hooks
-    document.querySelectorAll('.magnetic, button, .template-card').forEach(el => {
-       el.addEventListener('mouseenter', () => document.body.classList.add('hover-interactive'));
-       el.addEventListener('mouseleave', () => document.body.classList.remove('hover-interactive'));
-    });
+  // --- Theme Toggle ---
+  toggleTheme() {
+      const body = document.body;
+      const current = body.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', next);
+      
+      const icon = document.querySelector('#btn-theme i');
+      icon.className = next === 'dark' ? 'ri-sun-line' : 'ri-moon-line';
   }
 
-  // --- Render 30 Tools in Sidebar ---
+  // --- Auth UI ---
+  updateAuthUI(user) {
+      const btnLogin = document.getElementById('btn-login');
+      const profile = document.getElementById('user-profile');
+      
+      if (user) {
+          btnLogin.style.display = 'none';
+          profile.style.display = 'flex';
+          document.getElementById('user-avatar').src = user.picture;
+          document.getElementById('user-name').innerText = user.name;
+          this.showToast("Signed in to Google Drive");
+      } else {
+          btnLogin.style.display = 'flex';
+          profile.style.display = 'none';
+      }
+  }
+
+  // --- Render Tools in Sidebar ---
   renderTools() {
     const container = document.getElementById('tools-container');
     const categories = { basic: [], color: [], detail: [], fx: [] };
     
-    // Group tools
-    editorTools.forEach(t => {
-      if(categories[t.category]) categories[t.category].push(t);
-    });
+    editorTools.forEach(t => { if(categories[t.category]) categories[t.category].push(t); });
     
-    // Generate tabs content
     let html = '';
     for (const [cat, tools] of Object.entries(categories)) {
       html += `<div class="tool-section ${cat}-section" style="display: ${cat === 'basic' ? 'block' : 'none'}">`;
@@ -80,7 +75,6 @@ class AppUI {
     }
     container.innerHTML = html;
     
-    // Bind slider events
     container.querySelectorAll('.tool-slider').forEach(slider => {
       slider.addEventListener('input', (e) => {
         const id = e.target.dataset.id;
@@ -90,10 +84,6 @@ class AppUI {
         document.getElementById(`val-${id}`).innerText = `${val}${toolDef.unit}`;
         engine.updateState(id, val);
       });
-      
-      // Hook up magnetic cursor
-      slider.addEventListener('mouseenter', () => document.body.classList.add('hover-interactive'));
-      slider.addEventListener('mouseleave', () => document.body.classList.remove('hover-interactive'));
     });
   }
 
@@ -108,12 +98,11 @@ class AppUI {
     }
   }
 
-  // --- Render 60 Templates ---
+  // --- Render Templates ---
   renderTemplates() {
     const grid = document.getElementById('templates-grid');
     const catsContainer = document.getElementById('template-categories');
     
-    // Cats
     catsContainer.innerHTML = templateCategories.map((c, i) => 
       `<button class="category-chip ${i===0?'active':''}" data-cat="${c}">${c}</button>`
     ).join('');
@@ -122,21 +111,15 @@ class AppUI {
       btn.addEventListener('click', (e) => {
         catsContainer.querySelector('.active').classList.remove('active');
         e.target.classList.add('active');
-        const cat = e.target.dataset.cat;
-        this.filterTemplates(cat);
+        this.filterTemplates(e.target.dataset.cat);
       });
     });
 
-    // Grid items
     grid.innerHTML = templatesList.map(t => {
-      // Mock thumbnail generating logic via placeholder for cinematic feel
-      const hue = typeof t.settings.hueRotate === 'number' ? t.settings.hueRotate : (Math.random() * 360);
       return `
       <div class="template-card" data-id="${t.id}" data-cat="${t.category}">
-        <div style="width:100%; height:120px; background: hsl(${hue}, 40%, 20%); filter: ${this.cssFilterPreview(t.settings)}"></div>
-        <div class="info">
-          <h4>${t.name}</h4>
-        </div>
+        <div style="width:100%; height:100px; background: #333;"></div>
+        <div class="info"><h4>${t.name}</h4></div>
       </div>
       `;
     }).join('');
@@ -150,19 +133,11 @@ class AppUI {
              this.syncSlidersToState(engine.state);
              this.showToast(`Applied ${template.name}`);
              
-             // Visual highlight
              grid.querySelectorAll('.active').forEach(c => c.classList.remove('active'));
              e.currentTarget.classList.add('active');
           }
        });
-       
-       card.addEventListener('mouseenter', () => document.body.classList.add('hover-interactive'));
-       card.addEventListener('mouseleave', () => document.body.classList.remove('hover-interactive'));
     });
-  }
-  
-  cssFilterPreview(settings) {
-     return `brightness(${settings.brightness||100}%) contrast(${settings.contrast||100}%) saturate(${settings.saturation||100}%) sepia(${settings.sepia||0}%)`;
   }
 
   filterTemplates(cat) {
@@ -175,18 +150,20 @@ class AppUI {
 
   // --- Primary App Event Binding ---
   bindEvents() {
-    // Left Tool Tabs
+    document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
+    
+    document.getElementById('btn-login').addEventListener('click', () => driveManager.login());
+    document.getElementById('btn-logout').addEventListener('click', () => driveManager.logout());
+
     document.querySelectorAll('.sidebar-left .tab').forEach(tab => {
        tab.addEventListener('click', (e) => {
          document.querySelector('.sidebar-left .tab.active').classList.remove('active');
          e.target.classList.add('active');
-         
          document.querySelectorAll('.tool-section').forEach(s => s.style.display = 'none');
          document.querySelector(`.${e.target.dataset.target}-section`).style.display = 'block';
        });
     });
     
-    // Right Mode Toggles
     document.querySelectorAll('.mode-toggle .toggle-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
          document.querySelector('.mode-toggle .active').classList.remove('active');
@@ -196,32 +173,67 @@ class AppUI {
          if (mode === 'templates') {
             document.getElementById('templates-panel').style.display = 'block';
             document.getElementById('ai-panel').style.display = 'none';
-            document.body.classList.remove('hover-ai');
          } else {
             document.getElementById('templates-panel').style.display = 'none';
             document.getElementById('ai-panel').style.display = 'flex';
-            document.body.classList.add('hover-ai');
          }
       });
     });
 
-    // File Upload
     const fileUpload = document.getElementById('file-upload');
     const uploadOverlay = document.getElementById('upload-overlay');
     
-    fileUpload.addEventListener('change', (e) => {
+    fileUpload.addEventListener('change', async (e) => {
        if(e.target.files && e.target.files[0]) {
-          engine.loadImage(e.target.files[0]);
+          const file = e.target.files[0];
+          this.originalFileName = file.name;
+          engine.loadImage(file);
+          
           uploadOverlay.classList.add('hidden');
           document.getElementById('canvas-container').style.display = 'flex';
           document.getElementById('bottom-toolbar').style.display = 'flex';
+
+          // Automatically backup to Google Drive if logged in
+          if(driveManager.accessToken) {
+              this.showToast("Backing up original to Drive...");
+              try {
+                  await driveManager.saveToDrive(file, 'original', this.originalFileName);
+                  this.showToast("Original saved to Drive folder!");
+              } catch(err) {
+                  this.showToast("Failed to save original to Drive");
+              }
+          }
        }
     });
-    
-    // Compare Button (Hold to see original)
+
+    document.getElementById('btn-export').addEventListener('click', async () => {
+        if(!engine.imageLoaded) return;
+        this.showToast("Exporting...");
+        
+        engine.canvas.toBlob(async (blob) => {
+            // Local download fallback or supplementary
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Transform_${Date.now()}.jpg`;
+            a.click();
+
+            if (driveManager.accessToken) {
+                this.showToast("Uploading final version to Drive...");
+                try {
+                    await driveManager.saveToDrive(blob, 'edited', this.originalFileName);
+                    this.showToast("Final saved to Drive folder!");
+                } catch(err) {
+                    this.showToast("Failed to upload to Drive");
+                }
+            }
+        }, 'image/jpeg', 0.95);
+    });
+
     const btnCompare = document.getElementById('btn-compare');
     btnCompare.addEventListener('mousedown', () => { 
        engine.ctx.filter = 'none'; 
+       engine.ctx.globalCompositeOperation = 'source-over';
        engine.ctx.clearRect(0,0,engine.canvas.width, engine.canvas.height);
        engine.ctx.drawImage(engine.image, 0, 0); 
     });
@@ -239,15 +251,13 @@ class AppUI {
       const text = aiInput.value.trim();
       if (!text) return;
       
-      // User message
       this.ai.addMessage(chatContainer, text, 'user');
       aiInput.value = '';
       
-      // AI Processing
       setTimeout(() => {
         const response = this.ai.processText(text);
         this.ai.addMessage(chatContainer, response, 'ai');
-      }, 600);
+      }, 400);
     };
 
     aiSend.addEventListener('click', submit);
@@ -261,31 +271,24 @@ class AppUI {
     });
   }
 
-  // --- Toast ---
   showToast(msg) {
     const tc = document.getElementById('toast-container');
     const t = document.createElement('div');
     t.style.cssText = `
-      position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
-      background: var(--bg-elevated); padding: 10px 20px; border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1); font-size: 13px; z-index: 9999;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: fadeUp 0.3s ease;
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--text-primary); color: var(--bg-base); 
+      padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+      z-index: 9999; box-shadow: var(--shadow-soft); transition: opacity 0.3s;
     `;
     t.innerText = msg;
     document.body.appendChild(t);
     setTimeout(() => {
-      t.style.opacity = '0'; t.style.transition = 'opacity 0.3s';
+      t.style.opacity = '0';
       setTimeout(() => t.remove(), 300);
-    }, 2000);
+    }, 2500);
   }
 }
 
-// Add keyframes for toast
-const style = document.createElement('style');
-style.innerHTML = `@keyframes fadeUp { from {opacity:0; transform:translate(-50%,10px);} to {opacity:1; transform:translate(-50%,0);} }`;
-document.head.appendChild(style);
-
-// Init
 window.addEventListener('DOMContentLoaded', () => {
   new AppUI();
 });

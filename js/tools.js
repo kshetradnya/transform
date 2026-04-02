@@ -2,12 +2,12 @@
 
 export const editorTools = [
   // --- BASIC (8 tools) ---
-  { id: 'exposure', name: 'Exposure', min: -100, max: 100, default: 0, category: 'basic', unit: '%' },
-  { id: 'brightness', name: 'Brightness', min: 0, max: 200, default: 100, category: 'basic', unit: '%' },
-  { id: 'contrast', name: 'Contrast', min: 0, max: 200, default: 100, category: 'basic', unit: '%' },
-  { id: 'saturation', name: 'Saturation', min: 0, max: 200, default: 100, category: 'basic', unit: '%' },
-  { id: 'vibrance', name: 'Vibrance', min: -100, max: 100, default: 0, category: 'basic', unit: '%' }, /* Simulated via JS filter */
-  { id: 'temperature', name: 'Temperature', min: 2000, max: 10000, default: 5500, category: 'basic', unit: 'K' },
+  { id: 'exposure', name: 'Exposure', min: -200, max: 200, default: 0, category: 'basic', unit: '%' },
+  { id: 'brightness', name: 'Brightness', min: 0, max: 400, default: 100, category: 'basic', unit: '%' },
+  { id: 'contrast', name: 'Contrast', min: 0, max: 400, default: 100, category: 'basic', unit: '%' },
+  { id: 'saturation', name: 'Saturation', min: 0, max: 400, default: 100, category: 'basic', unit: '%' },
+  { id: 'vibrance', name: 'Vibrance', min: -100, max: 100, default: 0, category: 'basic', unit: '%' }, 
+  { id: 'temperature', name: 'Temperature', min: 1000, max: 12000, default: 5500, category: 'basic', unit: 'K' },
   { id: 'tint', name: 'Tint', min: -100, max: 100, default: 0, category: 'basic', unit: '%' },
 
   // --- HIGHLIGHTS/SHADOWS (4 tools) ---
@@ -19,8 +19,8 @@ export const editorTools = [
   // --- DETAIL (6 tools) ---
   { id: 'clarity', name: 'Clarity', min: -100, max: 100, default: 0, category: 'detail', unit: '%' },
   { id: 'texture', name: 'Texture', min: -100, max: 100, default: 0, category: 'detail', unit: '%' },
-  { id: 'sharpness', name: 'Sharpness', min: 0, max: 100, default: 0, category: 'detail', unit: '%' },
-  { id: 'blur', name: 'Gaussian Blur', min: 0, max: 20, default: 0, category: 'detail', unit: 'px' },
+  { id: 'sharpness', name: 'Sharpness', min: 0, max: 200, default: 0, category: 'detail', unit: '%' },
+  { id: 'blur', name: 'Gaussian Blur', min: 0, max: 100, default: 0, category: 'detail', unit: 'px' },
   { id: 'noiseReduction', name: 'Noise Reduce', min: 0, max: 100, default: 0, category: 'detail', unit: '%' },
 
   // --- COLOR ADVANCED HSL (6 tools) ---
@@ -39,7 +39,6 @@ export const editorTools = [
   { id: 'hueRotate', name: 'Hue Rotation', min: 0, max: 360, default: 0, category: 'fx', unit: '°' },
   { id: 'invert', name: 'Invert', min: 0, max: 100, default: 0, category: 'fx', unit: '%' },
   { id: 'splitToning', name: 'Split Toning', min: 0, max: 100, default: 0, category: 'fx', unit: '%' }
-
 ];
 
 // Expose state management block
