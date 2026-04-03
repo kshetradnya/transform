@@ -310,6 +310,7 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 
 input[type=range] {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   background: transparent;
   height: 12px; 
@@ -326,6 +327,7 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: 0; /* Square for IDE feel */
   background: var(--accent);
   -webkit-appearance: none;
+  appearance: none;
   margin-top: -5px; 
   cursor: ew-resize;
 }
@@ -402,15 +404,121 @@ input[type=range]:active::-webkit-slider-thumb { background: var(--accent-neon);
   background: var(--accent-bg);
 }
 
-.templates-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.templates-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+
 .template-card {
   border: 1px solid var(--bg-elevated);
-  position: relative; cursor: pointer;
+  position: relative;
+  cursor: pointer;
   background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  overflow: hidden;
+  transition:
+    border-color 0.22s ease,
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease;
 }
-.template-card:hover, .template-card.active { border-color: var(--accent); }
-.template-card .info { padding: 6px; text-align: center; }
-.template-card h4 { font-size: 10px; font-family: var(--font-code); color: var(--text-secondary); }
+
+/* Shimmer sweep pseudo-element */
+.template-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    var(--accent-bg) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  transition: background-position 0.45s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Accent left-edge bar */
+.template-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+
+.template-card:hover {
+  border-color: var(--accent);
+  transform: translateX(4px);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3), 0 2px 12px var(--accent-bg);
+}
+.template-card:hover::before {
+  background-position: -100% 0;
+}
+.template-card:hover::after {
+  transform: scaleY(1);
+}
+
+.template-card.active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.template-card.active::after {
+  transform: scaleY(1);
+}
+
+/* Thumbnail on the left */
+.template-card .thumb {
+  width: 72px;
+  height: 56px;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  position: relative;
+  z-index: 2;
+}
+
+/* Info block */
+.template-card .info {
+  flex: 1;
+  padding: 8px 12px 8px 0;
+  text-align: left;
+  position: relative;
+  z-index: 2;
+}
+
+.template-card h4 {
+  font-size: 11px;
+  font-family: var(--font-code);
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.template-card:hover h4 {
+  color: var(--accent);
+}
+
+/* 'Apply →' label that fades in on hover */
+.template-card .apply-hint {
+  font-size: 9px;
+  font-family: var(--font-code);
+  color: var(--accent-neon);
+  margin-top: 3px;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.template-card:hover .apply-hint {
+  opacity: 1;
+  transform: translateX(0);
+}
 
 /* AI Terminal / Output Panel */
 #ai-panel { display: flex; flex-direction: column; height: 100%; }
@@ -460,3 +568,184 @@ input[type=range]:active::-webkit-slider-thumb { background: var(--accent-neon);
   white-space: nowrap; opacity: 0; pointer-events: none;
 }
 .tooltip:hover::before { opacity: 1; }
+
+/* ========================================================
+   MOBILE RESPONSIVE  (≤ 768px)
+   ======================================================== */
+
+/* Mobile bottom nav bar */
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* ── Body & layout ── */
+  body {
+    overflow: hidden;
+    height: 100dvh;   /* dynamic viewport height for mobile browsers */
+  }
+
+  .app-wrapper {
+    height: 100dvh;
+  }
+
+  /* ── Top Bar ── */
+  .top-bar {
+    padding: 0 12px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    height: var(--header-h);
+  }
+
+  /* Hide less-critical buttons in the top bar on small screens */
+  .top-actions .divider { display: none; }
+  #btn-compare { display: none; }
+  #btn-undo, #btn-redo { width: 28px; height: 28px; font-size: 14px; }
+  #btn-export { padding: 5px 10px; font-size: 11px; gap: 5px; }
+  #btn-export i { display: none; }
+
+  /* Auth area – shrink avatar text */
+  #user-name { display: none; }
+  #btn-login { padding: 5px 8px; font-size: 11px; }
+  #btn-login i { margin: 0; }
+
+  /* Hide Drive label on very small screens, keep icon */
+  #btn-login span { display: none; }
+
+  /* ── Main workspace – stack vertically, reserve bottom nav ── */
+  .workspace {
+    flex-direction: column;
+    height: calc(100dvh - var(--header-h) - 52px); /* 52px = mobile-nav height */
+    overflow: hidden;
+  }
+
+  /* ── Sidebars become full-screen panels hidden by default ── */
+  .sidebar-left,
+  .sidebar-right {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    width: 100%;
+    height: calc(100dvh - var(--header-h) - 52px);
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .sidebar-right {
+    transform: translateX(100%);
+  }
+
+  /* When a sidebar is active/visible */
+  .sidebar-left.mobile-open,
+  .sidebar-right.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* ── Canvas area fills all remaining space ── */
+  .canvas-area {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .canvas-container {
+    padding: 16px;
+  }
+
+  /* Wider upload box on mobile */
+  .upload-box {
+    width: calc(100vw - 48px);
+    max-width: 360px;
+    padding: 28px 20px;
+  }
+
+  /* ── Bottom toolbar: scrollable strip ── */
+  .bottom-toolbar {
+    gap: 8px;
+    padding: 4px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    /* push it just above the mobile nav */
+    bottom: 52px;
+  }
+  .bottom-toolbar::-webkit-scrollbar { display: none; }
+
+  /* ── Tabs inside left sidebar ── */
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  /* Adjust sidebar inner padding */
+  .sidebar-content {
+    padding: 14px;
+  }
+
+  .sidebar-header {
+    padding: 10px 14px;
+  }
+
+  /* Template rows stay single-column on mobile (matches global 1fr rule) */
+
+  /* ── Mobile bottom navigation bar ── */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-light);
+    z-index: 200;
+    align-items: stretch;
+  }
+
+  .mobile-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-code);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    padding: 6px 4px;
+    border-radius: 0;
+  }
+
+  .mobile-nav-btn i {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .mobile-nav-btn.active,
+  .mobile-nav-btn:hover {
+    color: var(--accent);
+    background: var(--accent-bg);
+  }
+
+  .mobile-nav-btn.active i {
+    text-shadow: 0 0 10px var(--accent);
+  }
+}
+
+/* ── Extra-small phones (≤ 400px) ── */
+@media (max-width: 400px) {
+  .logo h1 { font-size: 12px; }
+  #btn-export { font-size: 10px; }
+}

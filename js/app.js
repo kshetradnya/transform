@@ -118,8 +118,11 @@ class AppUI {
     grid.innerHTML = templatesList.map(t => {
       return `
       <div class="template-card" data-id="${t.id}" data-cat="${t.category}">
-        <div style="width:100%; height:100px; background: #333;"></div>
-        <div class="info"><h4>${t.name}</h4></div>
+        <div class="thumb"></div>
+        <div class="info">
+          <h4>${t.name}</h4>
+          <div class="apply-hint">Apply →</div>
+        </div>
       </div>
       `;
     }).join('');
@@ -291,4 +294,56 @@ class AppUI {
 
 window.addEventListener('DOMContentLoaded', () => {
   new AppUI();
+  initMobileNav();
 });
+
+// ── Mobile bottom nav ──────────────────────────────────────────────────────
+function initMobileNav() {
+  const sidebarLeft  = document.querySelector('.sidebar-left');
+  const sidebarRight = document.querySelector('.sidebar-right');
+  const navBtns      = document.querySelectorAll('.mobile-nav-btn');
+
+  // Helper: close all sidebars and deactivate all nav buttons
+  function resetAll() {
+    sidebarLeft.classList.remove('mobile-open');
+    sidebarRight.classList.remove('mobile-open');
+    navBtns.forEach(b => b.classList.remove('active'));
+  }
+
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = btn.dataset.panel;
+      const alreadyActive = btn.classList.contains('active');
+
+      resetAll();
+
+      // If it was already active -> just close panel (toggle off), otherwise open
+      if (!alreadyActive) {
+        btn.classList.add('active');
+
+        if (panel === 'adjust') {
+          sidebarLeft.classList.add('mobile-open');
+        } else if (panel === 'presets') {
+          // Make sure templates panel is visible, hide AI
+          document.getElementById('templates-panel').style.display = 'block';
+          document.getElementById('ai-panel').style.display = 'none';
+          // Sync toggle buttons in right sidebar
+          document.querySelectorAll('.mode-toggle .toggle-btn').forEach(tb => tb.classList.remove('active'));
+          const tplBtn = document.querySelector('.toggle-btn[data-mode="templates"]');
+          if (tplBtn) tplBtn.classList.add('active');
+          sidebarRight.classList.add('mobile-open');
+        } else if (panel === 'ai') {
+          // Show AI panel, hide templates
+          document.getElementById('templates-panel').style.display = 'none';
+          document.getElementById('ai-panel').style.display = 'flex';
+          // Sync toggle buttons in right sidebar
+          document.querySelectorAll('.mode-toggle .toggle-btn').forEach(tb => tb.classList.remove('active'));
+          const aiBtn = document.querySelector('.toggle-btn[data-mode="ai"]');
+          if (aiBtn) aiBtn.classList.add('active');
+          sidebarRight.classList.add('mobile-open');
+        }
+        // 'canvas' just closes everything (canvas is the default view)
+      }
+    });
+  });
+}
