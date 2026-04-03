@@ -404,120 +404,199 @@ input[type=range]:active::-webkit-slider-thumb { background: var(--accent-neon);
   background: var(--accent-bg);
 }
 
-.templates-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-
+.templates-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .template-card {
   border: 1px solid var(--bg-elevated);
-  position: relative;
-  cursor: pointer;
+  position: relative; cursor: pointer;
   background: var(--bg-base);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0;
+}
+.template-card:hover, .template-card.active { border-color: var(--accent); }
+.template-card .info { padding: 6px; text-align: center; }
+.template-card h4 { font-size: 10px; font-family: var(--font-code); color: var(--text-secondary); }
+
+/* ── Preset Preview Thumbnail ── */
+.preset-preview {
+  width: 100%;
+  height: 88px;
+  flex-shrink: 0;
+  position: relative;
   overflow: hidden;
-  transition:
-    border-color 0.22s ease,
-    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.22s ease;
 }
 
-/* Shimmer sweep pseudo-element */
-.template-card::before {
+/* Subtle dark vignette overlay so the card always reads cleanly */
+.preset-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.06) 0%,
+    rgba(0,0,0,0.28) 100%
+  );
+}
+
+/* Shimmer animation on hover */
+.template-card:hover .preset-preview::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     105deg,
-    transparent 40%,
-    var(--accent-bg) 50%,
-    transparent 60%
+    transparent 30%,
+    rgba(255,255,255,0.15) 50%,
+    transparent 70%
   );
-  background-size: 200% 100%;
-  background-position: 200% 0;
-  transition: background-position 0.45s ease;
-  pointer-events: none;
-  z-index: 1;
+  animation: preview-shimmer 0.55s ease forwards;
 }
 
-/* Accent left-edge bar */
-.template-card::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--accent);
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-  z-index: 2;
+@keyframes preview-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%);  }
 }
 
-.template-card:hover {
-  border-color: var(--accent);
-  transform: translateX(4px);
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3), 0 2px 12px var(--accent-bg);
-}
-.template-card:hover::before {
-  background-position: -100% 0;
-}
-.template-card:hover::after {
-  transform: scaleY(1);
-}
-
-.template-card.active {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-}
-.template-card.active::after {
-  transform: scaleY(1);
-}
-
-/* Thumbnail on the left */
-.template-card .thumb {
-  width: 72px;
-  height: 56px;
-  flex-shrink: 0;
-  background: var(--bg-elevated);
-  position: relative;
-  z-index: 2;
-}
-
-/* Info block */
-.template-card .info {
-  flex: 1;
-  padding: 8px 12px 8px 0;
-  text-align: left;
-  position: relative;
-  z-index: 2;
-}
-
-.template-card h4 {
-  font-size: 11px;
-  font-family: var(--font-code);
-  color: var(--text-secondary);
-  transition: color 0.2s;
-}
-
-.template-card:hover h4 {
-  color: var(--accent);
-}
-
-/* 'Apply →' label that fades in on hover */
-.template-card .apply-hint {
+/* ── Trend Badge ── */
+.trend-badge {
+  display: inline-block;
+  margin-top: 4px;
   font-size: 9px;
   font-family: var(--font-code);
   color: var(--accent-neon);
-  margin-top: 3px;
-  opacity: 0;
-  transform: translateX(-6px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 2px 6px;
+  border-radius: 2px;
+  letter-spacing: 0.03em;
 }
-.template-card:hover .apply-hint {
-  opacity: 1;
-  transform: translateX(0);
+
+/* ── Face Blur Modal ── */
+.fb-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.fb-modal.open { display: flex; }
+
+.fb-modal-box {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  animation: modal-drop 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+@keyframes modal-drop {
+  from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+.fb-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fb-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-code);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.fb-modal-title i { font-size: 20px; }
+
+.fb-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-family: var(--font-code);
+}
+
+.fb-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-light);
+}
+
+.fb-status-row p {
+  font-size: 12px;
+  font-family: var(--font-code);
+  color: var(--text-code);
+}
+
+/* Spinning loader icon */
+.fb-spin {
+  font-size: 16px;
+  color: var(--accent);
+  animation: fb-rotate 1s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes fb-rotate {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+.fb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fb-actions .primary-btn,
+.fb-actions .secondary-btn { flex: 1; min-width: 120px; justify-content: center; }
+
+/* Face picker checkboxes */
+#fb-pick-area {
+  border-top: 1px solid var(--border-light);
+  padding-top: 14px;
+}
+.fb-pick-label {
+  font-size: 11px;
+  font-family: var(--font-code);
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+.fb-face-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-light);
+  font-size: 12px;
+  font-family: var(--font-code);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.fb-face-option:hover { border-color: var(--accent); }
+.fb-face-option input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+
+/* Mobile tweaks for modal */
+@media (max-width: 768px) {
+  .fb-modal-box { padding: 18px; gap: 12px; }
+  .fb-actions { flex-direction: column; }
+  .fb-actions .primary-btn,
+  .fb-actions .secondary-btn { width: 100%; }
 }
 
 /* AI Terminal / Output Panel */

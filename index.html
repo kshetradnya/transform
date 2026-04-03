@@ -158,6 +158,40 @@
     </div>
   </div>
 
+  <!-- Face Blur Trend Modal -->
+  <div class="fb-modal" id="face-blur-modal">
+    <div class="fb-modal-box">
+      <div class="fb-modal-header">
+        <div class="fb-modal-title">
+          <i class="ri-user-unfollow-line"></i>
+          <span>Blurry Face</span>
+        </div>
+        <button class="icon-btn" id="fb-close"><i class="ri-close-line"></i></button>
+      </div>
+
+      <p class="fb-desc">Detects faces in your photo and lets you blur all of them or choose specific ones.</p>
+
+      <div class="fb-status-row">
+        <i class="ri-loader-4-line fb-spin"></i>
+        <p id="fb-status">Scanning image for faces…</p>
+      </div>
+
+      <div class="fb-actions">
+        <button id="fb-btn-all" class="primary-btn" style="display:none">
+          <i class="ri-blur-off-line"></i> Blur All Faces
+        </button>
+        <button id="fb-btn-some" class="secondary-btn" style="display:none">
+          <i class="ri-focus-3-line"></i> Choose Specific Faces
+        </button>
+        <button id="fb-btn-fullblur" class="secondary-btn" style="display:none">
+          <i class="ri-blur-off-line"></i> Blur Entire Image
+        </button>
+      </div>
+
+      <div id="fb-pick-area" style="display:none"></div>
+    </div>
+  </div>
+
   <!-- Mobile Bottom Navigation (hidden on desktop via CSS) -->
   <nav class="mobile-nav" id="mobile-nav">
     <button class="mobile-nav-btn active" id="mnav-canvas" data-panel="canvas">

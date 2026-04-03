@@ -7,13 +7,15 @@ import { driveManager } from './drive.js';
 class AppUI {
   constructor() {
     this.originalFileName = 'photo.jpg';
-    
+    this.detectedFaces = [];
+
     this.renderTools();
     this.renderTemplates();
     this.bindEvents();
-    
-    this.ai = initAI(engine, this); 
+
+    this.ai = initAI(engine, this);
     this.bindAIEvents();
+    this.initFaceBlurModal();
 
     // Init Drive Auth
     setTimeout(() => {
@@ -102,11 +104,11 @@ class AppUI {
   renderTemplates() {
     const grid = document.getElementById('templates-grid');
     const catsContainer = document.getElementById('template-categories');
-    
-    catsContainer.innerHTML = templateCategories.map((c, i) => 
+
+    catsContainer.innerHTML = templateCategories.map((c, i) =>
       `<button class="category-chip ${i===0?'active':''}" data-cat="${c}">${c}</button>`
     ).join('');
-    
+
     catsContainer.querySelectorAll('.category-chip').forEach(btn => {
       btn.addEventListener('click', (e) => {
         catsContainer.querySelector('.active').classList.remove('active');
@@ -115,31 +117,158 @@ class AppUI {
       });
     });
 
+    // Build gradient preview from preset's preview colors
+    const buildGradient = (colors) => {
+      if (!colors || colors.length === 0) return 'linear-gradient(135deg, #333, #555)';
+      if (colors.length === 1) return colors[0];
+      return `linear-gradient(135deg, ${colors.join(', ')})`;
+    };
+
     grid.innerHTML = templatesList.map(t => {
+      const gradient = buildGradient(t.preview);
+      const trendBadge = t.category === 'Trends'
+        ? `<span class="trend-badge">${t.trendType === 'face-blur' ? '🔍 Interactive' : '🔥 Trending'}</span>`
+        : '';
       return `
       <div class="template-card" data-id="${t.id}" data-cat="${t.category}">
-        <div class="thumb"></div>
+        <div class="preset-preview" style="background: ${gradient};">
+          <div class="preset-preview-overlay"></div>
+        </div>
         <div class="info">
           <h4>${t.name}</h4>
-          <div class="apply-hint">Apply →</div>
+          ${trendBadge}
         </div>
       </div>
       `;
     }).join('');
-    
+
     grid.querySelectorAll('.template-card').forEach(card => {
-       card.addEventListener('click', (e) => {
-          const id = e.currentTarget.dataset.id;
-          const template = templatesList.find(t => t.id === id);
-          if (template) {
-             engine.applyTemplate(template.settings);
-             this.syncSlidersToState(engine.state);
-             this.showToast(`Applied ${template.name}`);
-             
-             grid.querySelectorAll('.active').forEach(c => c.classList.remove('active'));
-             e.currentTarget.classList.add('active');
-          }
-       });
+      card.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const template = templatesList.find(t => t.id === id);
+        if (!template) return;
+
+        // Special trend: Blurry Face
+        if (template.trendType === 'face-blur') {
+          this.launchFaceBlur();
+          return;
+        }
+
+        engine.applyTemplate(template.settings);
+        this.syncSlidersToState(engine.state);
+        this.showToast(`Applied: ${template.name}`);
+
+        grid.querySelectorAll('.template-card.active').forEach(c => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+      });
+    });
+  }
+
+  // ── Blurry Face Trend ─────────────────────────────────────────────────────
+  launchFaceBlur() {
+    if (!engine.imageLoaded) {
+      this.showToast('Load an image first!');
+      return;
+    }
+    document.getElementById('face-blur-modal').classList.add('open');
+    this.detectAndBlurFaces();
+  }
+
+  async detectAndBlurFaces() {
+    const statusEl = document.getElementById('fb-status');
+    const canvas = engine.canvas;
+
+    // Feature detect Face Detection API
+    if (!('FaceDetector' in window)) {
+      statusEl.textContent = 'Face Detection not supported in your browser. Applying full blur instead.';
+      document.getElementById('fb-btn-all').style.display = 'none';
+      document.getElementById('fb-btn-some').style.display = 'none';
+      document.getElementById('fb-btn-fullblur').style.display = 'flex';
+      return;
+    }
+
+    statusEl.textContent = 'Detecting faces…';
+    try {
+      const detector = new FaceDetector({ fastMode: false, maxDetectedFaces: 20 });
+      // Create an ImageBitmap from the canvas
+      const bitmap = await createImageBitmap(canvas);
+      this.detectedFaces = await detector.detect(bitmap);
+
+      if (this.detectedFaces.length === 0) {
+        statusEl.textContent = 'No faces detected in this image.';
+        document.getElementById('fb-btn-all').style.display = 'none';
+        document.getElementById('fb-btn-some').style.display = 'none';
+      } else {
+        statusEl.textContent = `Found ${this.detectedFaces.length} face${this.detectedFaces.length > 1 ? 's' : ''}. Choose what to blur:`;
+        document.getElementById('fb-btn-all').style.display = 'flex';
+        document.getElementById('fb-btn-some').style.display = this.detectedFaces.length > 1 ? 'flex' : 'none';
+      }
+    } catch(err) {
+      statusEl.textContent = 'Detection failed. Use full blur option below.';
+      document.getElementById('fb-btn-fullblur').style.display = 'flex';
+    }
+  }
+
+  blurFaces(indices) {
+    const ctx = engine.ctx;
+    const faces = this.detectedFaces || [];
+    const targets = indices === 'all' ? faces : indices.map(i => faces[i]).filter(Boolean);
+
+    ctx.save();
+    targets.forEach(face => {
+      const { x, y, width, height } = face.boundingBox;
+      const pad = Math.min(width, height) * 0.15;
+      ctx.filter = 'blur(18px)';
+      // Re-draw just that region from the original image (not re-blurred)
+      ctx.drawImage(engine.image,
+        Math.max(0, x - pad), Math.max(0, y - pad), width + pad * 2, height + pad * 2,
+        Math.max(0, x - pad), Math.max(0, y - pad), width + pad * 2, height + pad * 2
+      );
+    });
+    ctx.filter = 'none';
+    ctx.restore();
+    this.showToast(`Blurred ${targets.length} face${targets.length !== 1 ? 's' : ''}`);
+  }
+
+  initFaceBlurModal() {
+    const modal = document.getElementById('face-blur-modal');
+    const close = () => modal.classList.remove('open');
+
+    document.getElementById('fb-close').addEventListener('click', close);
+    modal.addEventListener('click', (e) => { if(e.target === modal) close(); });
+
+    document.getElementById('fb-btn-all').addEventListener('click', () => {
+      this.blurFaces('all');
+      close();
+    });
+
+    document.getElementById('fb-btn-fullblur').addEventListener('click', () => {
+      engine.updateState('blur', 20);
+      this.syncSlidersToState(engine.state);
+      this.showToast('Full image blur applied');
+      close();
+    });
+
+    // "Choose some" — show checkboxes dynamically
+    document.getElementById('fb-btn-some').addEventListener('click', () => {
+      const pickArea = document.getElementById('fb-pick-area');
+      const faces = this.detectedFaces || [];
+      pickArea.innerHTML = `
+        <p class="fb-pick-label">Select which faces to blur:</p>
+        ${faces.map((_, i) => `
+          <label class="fb-face-option">
+            <input type="checkbox" value="${i}" checked>
+            Face ${i + 1}
+          </label>
+        `).join('')}
+        <button id="fb-apply-some" class="primary-btn" style="margin-top:12px">Apply Selected</button>
+      `;
+      pickArea.style.display = 'block';
+      document.getElementById('fb-apply-some').addEventListener('click', () => {
+        const checked = [...pickArea.querySelectorAll('input:checked')].map(el => parseInt(el.value));
+        if (checked.length) this.blurFaces(checked);
+        close();
+      });
     });
   }
 
