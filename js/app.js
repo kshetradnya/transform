@@ -170,43 +170,72 @@ class AppUI {
       this.showToast('Load an image first!');
       return;
     }
+    // Reset modal state
+    document.getElementById('fb-btn-all').style.display = 'none';
+    document.getElementById('fb-btn-some').style.display = 'none';
+    document.getElementById('fb-btn-fullblur').style.display = 'none';
+    document.getElementById('fb-pick-area').style.display = 'none';
+    document.getElementById('fb-pick-area').innerHTML = '';
+    document.getElementById('fb-status').textContent = 'Loading face detection model…';
     document.getElementById('face-blur-modal').classList.add('open');
     this.detectAndBlurFaces();
   }
 
   async detectAndBlurFaces() {
     const statusEl = document.getElementById('fb-status');
-    const canvas = engine.canvas;
 
-    // Feature detect Face Detection API
-    if (!('FaceDetector' in window)) {
-      statusEl.textContent = 'Face Detection not supported in your browser. Applying full blur instead.';
-      document.getElementById('fb-btn-all').style.display = 'none';
-      document.getElementById('fb-btn-some').style.display = 'none';
-      document.getElementById('fb-btn-fullblur').style.display = 'flex';
-      return;
-    }
-
-    statusEl.textContent = 'Detecting faces…';
     try {
-      const detector = new FaceDetector({ fastMode: false, maxDetectedFaces: 20 });
-      // Create an ImageBitmap from the canvas
-      const bitmap = await createImageBitmap(canvas);
-      this.detectedFaces = await detector.detect(bitmap);
+      // Load face-api.js models from CDN if not already loaded
+      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+
+      if (typeof faceapi === 'undefined') {
+        statusEl.textContent = 'Initialising face detection…';
+        await this._loadScript('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js');
+      }
+
+      // Load the tiny detector model (fast, ~1 MB)
+      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+        statusEl.textContent = 'Loading model (first use takes ~2 s)…';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      }
+
+      statusEl.textContent = 'Scanning for faces…';
+
+      // Detect on the current canvas
+      const detections = await faceapi.detectAllFaces(
+        engine.canvas,
+        new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })
+      );
+
+      this.detectedFaces = detections.map(d => d.box); // {x, y, width, height}
 
       if (this.detectedFaces.length === 0) {
-        statusEl.textContent = 'No faces detected in this image.';
-        document.getElementById('fb-btn-all').style.display = 'none';
-        document.getElementById('fb-btn-some').style.display = 'none';
+        statusEl.textContent = 'No faces detected — try the full-image blur instead.';
+        document.getElementById('fb-btn-fullblur').style.display = 'flex';
       } else {
-        statusEl.textContent = `Found ${this.detectedFaces.length} face${this.detectedFaces.length > 1 ? 's' : ''}. Choose what to blur:`;
+        statusEl.textContent = `Found ${this.detectedFaces.length} face${this.detectedFaces.length > 1 ? 's' : ''}. What would you like to blur?`;
         document.getElementById('fb-btn-all').style.display = 'flex';
-        document.getElementById('fb-btn-some').style.display = this.detectedFaces.length > 1 ? 'flex' : 'none';
+        if (this.detectedFaces.length > 1) {
+          document.getElementById('fb-btn-some').style.display = 'flex';
+        }
       }
-    } catch(err) {
-      statusEl.textContent = 'Detection failed. Use full blur option below.';
+    } catch (err) {
+      console.error('face-api error:', err);
+      statusEl.textContent = 'Detection failed. You can still blur the full image.';
       document.getElementById('fb-btn-fullblur').style.display = 'flex';
     }
+  }
+
+  // Dynamically load an external script (returns promise)
+  _loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
   }
 
   blurFaces(indices) {
@@ -214,20 +243,28 @@ class AppUI {
     const faces = this.detectedFaces || [];
     const targets = indices === 'all' ? faces : indices.map(i => faces[i]).filter(Boolean);
 
+    if (targets.length === 0) return;
+
     ctx.save();
-    targets.forEach(face => {
-      const { x, y, width, height } = face.boundingBox;
-      const pad = Math.min(width, height) * 0.15;
-      ctx.filter = 'blur(18px)';
-      // Re-draw just that region from the original image (not re-blurred)
-      ctx.drawImage(engine.image,
-        Math.max(0, x - pad), Math.max(0, y - pad), width + pad * 2, height + pad * 2,
-        Math.max(0, x - pad), Math.max(0, y - pad), width + pad * 2, height + pad * 2
-      );
+    targets.forEach(box => {
+      // face-api.js returns Box with {x, y, width, height}
+      const { x, y, width, height } = box;
+      const pad = Math.min(width, height) * 0.18;
+      const sx = Math.max(0, x - pad);
+      const sy = Math.max(0, y - pad);
+      const sw = Math.min(engine.canvas.width  - sx, width  + pad * 2);
+      const sh = Math.min(engine.canvas.height - sy, height + pad * 2);
+
+      // Multi-pass blur: stack 3 increasingly blurry redraws for a strong effect
+      [10, 18, 28].forEach(blurPx => {
+        ctx.filter = `blur(${blurPx}px)`;
+        ctx.drawImage(engine.image, sx, sy, sw, sh, sx, sy, sw, sh);
+      });
     });
+
     ctx.filter = 'none';
     ctx.restore();
-    this.showToast(`Blurred ${targets.length} face${targets.length !== 1 ? 's' : ''}`);
+    this.showToast(`Blurred ${targets.length} face${targets.length !== 1 ? 's' : ''} ✓`);
   }
 
   initFaceBlurModal() {
