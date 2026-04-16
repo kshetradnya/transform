@@ -1,25 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
-  /* Default: Synthwave Purple IDE Theme */
-  --bg-base: #1e1e2e;
-  --bg-surface: #181825;
-  --bg-elevated: #313244;
-  --text-primary: #cdd6f4;
-  --text-secondary: #a6adc8;
-  --text-code: #89b4fa;
-  --text-comment: #6c7086;
+  /* Portfolio IDE Theme */
+  --bg-base: #1e1e1e;
+  --bg-surface: #252526;
+  --bg-elevated: #333333;
+  --text-primary: #cccccc;
+  --text-secondary: #858585;
+  --text-code: #9cdcfe;
+  --text-comment: #6a9955;
   
-  --accent: #cba6f7;
-  --accent-hover: #b4befe;
-  --accent-neon: #f5c2e7;
-  --accent-bg: rgba(203, 166, 247, 0.1);
-  --border-light: rgba(255, 255, 255, 0.08);
+  --accent: #007acc;
+  --accent-hover: #005f9e;
+  --accent-neon: #4fc1ff;
+  --accent-bg: rgba(0, 122, 204, 0.1);
+  --border-light: #3b3b3b;
   --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.4);
   --input-bg: rgba(0, 0, 0, 0.2);
 
-  --font-main: 'Inter', sans-serif;
-  --font-code: 'Fira Code', monospace;
+  --font-main: 'DM Sans', sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
 
   --sidebar-w: 320px;
   --header-h: 56px;
@@ -27,23 +27,23 @@
   --radius-sm: 2px;
 }
 
-[data-theme="dracula"] {
-  /* Dracula / Midnight Dark IDE Theme */
-  --bg-base: #282a36;
-  --bg-surface: #21222c;
-  --bg-elevated: #44475a;
-  --text-primary: #f8f8f2;
-  --text-secondary: #6272a4;
-  --text-code: #8be9fd;
-  --text-comment: #6272a4;
+[data-theme="pro"] {
+  /* Pro / Light Portfolio Theme */
+  --bg-base: #faf9f6;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0eee6;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-code: #007acc;
+  --text-comment: #888888;
   
-  --accent: #bd93f9;
-  --accent-hover: #ff79c6;
-  --accent-neon: #50fa7b;
-  --accent-bg: rgba(189, 147, 249, 0.1);
-  --border-light: rgba(255, 255, 255, 0.05);
-  --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.5);
-  --input-bg: rgba(0, 0, 0, 0.3);
+  --accent: #1a1a1a;
+  --accent-hover: #333333;
+  --accent-neon: #1a1a1a;
+  --accent-bg: rgba(26, 26, 26, 0.05);
+  --border-light: rgba(0, 0, 0, 0.1);
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.02);
+  --input-bg: rgba(0, 0, 0, 0.03);
 }
 
 * {
